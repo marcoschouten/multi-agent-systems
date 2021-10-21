@@ -17,11 +17,11 @@ Demo https://www.youtube.com/watch?v=uqHvi7Tg-ik
 - a1
   - vehicle routing problem 
 - a2
- - We use Minimum Spanning Tree (MST) to perform Vacuum Cleaner Planning within a short time
- - and then apply DFS and BFS to solve Vehicle Routing Problem
- - which we combined with Minimum Set Cover algorithm to solve Indoor UGV search.
- - We implemented V-shape formation for formation sweep, 
- - Dijkstra algorithm for planning shooter coordination of three vehicles.
+  - We use Minimum Spanning Tree (MST) to perform Vacuum Cleaner Planning within a short time
+  - and then apply DFS and BFS to solve Vehicle Routing Problem
+  - which we combined with Minimum Set Cover algorithm to solve Indoor UGV search.
+  - We implemented V-shape formation for formation sweep, 
+  - Dijkstra algorithm for planning shooter coordination of three vehicles.
 - a3
   - vehicle avoidance
   - drone soccer
