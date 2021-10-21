@@ -27,3 +27,4 @@ Demo https://www.youtube.com/watch?v=uqHvi7Tg-ik
   - drone soccer
 - a4 starcraft bot
   - the ability of behaviour trees and back chaining for controlling a starcraft AI system.
+  - Installation: https://github.com/davechurchill/ualbertabot/wiki/Installation-Instructions https://www.youtube.com/watch?v=Bw2IDR5gt7c
