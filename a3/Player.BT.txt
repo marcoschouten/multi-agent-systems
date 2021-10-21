@@ -1,0 +1,91 @@
+tree("Root")
+	parallel
+		fallback
+			not IsManager()
+			tree("Manager")
+		tree("Player")
+
+
+tree("Manager")
+    sequence
+        fallback
+            IsBallOnEnemySide()
+            SetDefensiveRoles()
+        SetOffensiveRoles()
+
+tree("Player")
+	fallback
+		sequence
+			IsRole(PlayerRole.Goalie)
+			tree("Goalie")
+		sequence
+			IsRole(PlayerRole.Attacker)
+			tree("Attacker")
+		sequence
+			IsRole(PlayerRole.Defender)
+			tree("Defender")
+		tree("Attacker")
+
+tree("Goalie")
+	sequence
+		fallback
+			not CanKick()			
+			sequence
+				fallback
+					not CanPassClosestSafely()
+					PassClosest()
+				KickToSide()
+		fallback
+			not WillReachBallBeforeEnemies()
+			GoToBall()
+		fallback
+			IsCloseToOwnGoal()
+			MoveToOwnGoal()
+		GuardGoal()
+
+
+tree("Defender")
+	sequence
+		fallback
+			not HasBall()
+			sequence
+				fallback
+					CanKick()
+					GoToBall()
+				fallback
+					not CanPassClosestSafely()
+					PassClosest()
+				KickToSide() 
+		fallback
+			not EnemyHasBall()
+			sequence
+				fallback
+					IsLastGuard()
+					PositionAsLastGuard()
+				Block()
+		Intercept()
+
+	
+
+
+tree("Attacker")
+	sequence
+		fallback
+			not HasBall()
+			sequence
+				fallback
+					not HasFriendCloserToEnemyGoal()
+					PassClosestToEnemyGoal()
+				sequence
+					fallback
+						not EnemiesPressing()
+						KickToSide()
+					fallback
+						IsCloseToEnemyGoal()
+						WalkForwardWithBall()
+					KickToScore()
+		fallback
+			not HasFriendCloserToEnemyGoal()
+			ReceiveBall()
+		WalkForwardWithBall()
+	

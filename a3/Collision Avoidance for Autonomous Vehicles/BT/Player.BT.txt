@@ -1,0 +1,6 @@
+tree("Root")
+	sequence
+		fallback
+			CanKick()
+			GoToBall()
+		KickBall()

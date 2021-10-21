@@ -1,0 +1,304 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+[RequireComponent(typeof(DroneController))]
+[RequireComponent(typeof(myGraph))]
+public class DroneAI : MonoBehaviour
+{
+
+    private DroneController m_Drone; // the car controller we want to use
+
+    public GameObject terrain_manager_game_object;
+    TerrainManager terrain_manager;
+    List<Vector3> my_path;
+
+    public Vector3 RAND_FREE_CONF(Vector3 goal_pos, Vector3 current_pos) {
+        // get terrain dimensions
+        float x_low = terrain_manager.myInfo.x_low;
+        float x_high = terrain_manager.myInfo.x_high;
+        float z_low = terrain_manager.myInfo.z_low;
+        float z_high = terrain_manager.myInfo.z_high;
+
+        // bias sampling towards distribution
+        // Vector3 bias = new Vector3(goal_pos.x * 0.01F, 0, goal_pos.z * 0.01F);
+        Vector3 bias = new Vector3(0.0F, 0.0F, 0.0F);
+
+
+
+
+        int res = 0 ;
+        float x_rand = 0.0F;
+        float y_rand = 0.0F;
+        float z_rand = 0.0F;
+        do {
+            // generate a random point in the continuous map
+           
+            x_rand = UnityEngine.Random.Range(x_low + bias.x, x_high + bias.x);
+            z_rand = UnityEngine.Random.Range(z_low + bias.z, z_high + bias.z);
+
+            // transform it to the integer map
+            int i = terrain_manager.myInfo.get_i_index(x_rand);
+            int j = terrain_manager.myInfo.get_j_index(z_rand);
+
+            // check if traversable
+            res = (int) terrain_manager.myInfo.traversability[i, j];
+
+        } while (res != 0); // if 0, means it is free, hence it goes outside loop
+
+        return new Vector3(x_rand, y_rand, z_rand);
+   }
+
+
+    // PROBLEMA CON TRAVERASBLE
+    public Vector3 RAND_FREE_CONF_V3(Vector3 goal_pos, Vector3 current_pos) {
+        int traversable = 0;
+        float x_rand = 0.0F;
+        float y_rand = 0.0F;
+        float z_rand = 0.0F;
+
+        int loop = 0;
+        float scale = 0.1F;
+        float x_add = (goal_pos.x - current_pos.x) * scale;
+        float z_add = (goal_pos.z - current_pos.z) * scale;
+        int i = -1;
+        int j = -1;
+        do {
+            // generate a random point in the continuous map
+            x_rand = UnityEngine.Random.Range(-30.0f, 30.0f) + x_add;
+            z_rand = UnityEngine.Random.Range(-30.0f, 30.0f) + z_add;
+
+            // transform it to the integer map
+             i = terrain_manager.myInfo.get_i_index(x_rand);
+             j = terrain_manager.myInfo.get_j_index(z_rand);
+
+            // check if traversable
+            traversable = (int)terrain_manager.myInfo.traversability[i, j];
+            loop++;
+
+        } while ((traversable != 0) && (loop < 10)); // if 0, means it is free, hence it goes outside loop
+
+        return new Vector3(x_rand, y_rand, z_rand);
+    }
+    public Vector3 RAND_FREE_CONF_V4(Vector3 goal_pos) {
+
+        // get terrain dimensions
+        float x_low = terrain_manager.myInfo.x_low;
+        float x_high = terrain_manager.myInfo.x_high;
+        float z_low = terrain_manager.myInfo.z_low;
+        float z_high = terrain_manager.myInfo.z_high;
+
+        // generate random vector
+        float x_rand = UnityEngine.Random.Range(x_low, x_high);
+        float y_rand = 0.0f;
+        float z_rand = UnityEngine.Random.Range(z_low, z_high );
+
+        Vector3 bias = new Vector3((goal_pos.x - x_rand) * 0.3f, 0.0f, (goal_pos.z - z_rand )* 0.3f);
+
+        return new Vector3(x_rand + bias.x , y_rand, z_rand + bias.z);
+    }
+
+
+    public Vector3 NEW_CONF(Vector3 qnear, Vector3 qrand, float step) {
+        // predict movement of the drone according to the map
+        float x_add = (qrand.x - qnear.x) * step;
+        float z_add = (qrand.z - qnear.z) * step;
+        return new Vector3((float) qnear.x + x_add, 0.0F, (float) qnear.z + z_add);
+    }
+
+
+
+    private void Start()
+    {
+        // get the drone controller
+        m_Drone = GetComponent<DroneController>();
+        terrain_manager = terrain_manager_game_object.GetComponent<TerrainManager>();
+
+
+        Vector3 start_pos = terrain_manager.myInfo.start_pos;
+        Vector3 goal_pos = terrain_manager.myInfo.goal_pos;
+
+       
+
+        // drone size
+        // Vector3 objectSize = Vector3.Scale(transform.localScale, GetComponent<DroneController>().mesh.bounds.size);
+        //Debug.Log(objectSize.x);
+        Vector3 drone_size = Vector3.Scale(transform.localScale, new Vector3(10, 10, 10));
+        //Debug.Log(drone_size.x);
+
+       
+
+        // RRT algorithm 
+        // phase 1 -  build graph
+        myGraph G = new myGraph(start_pos);
+        //GameObject gameObject = new GameObject("myGraph");
+        //myGraph myGraph = gameObject.AddComponent<myGraph>();
+        int iterations = 1000;
+        float step = 0.03F;
+        Vector3 qnew = new Vector3 (start_pos.x, 0.0F, start_pos.z);
+        float goal_distance = 12.0f;    
+
+         for (int j = 0; (goal_distance > 5f ) && (j <5) ; j++) { 
+        // while (goal_distance < 0.1f) { 
+
+            for (int i = 0; i < iterations; i++) {
+                Vector3 qrand = RAND_FREE_CONF_V4(goal_pos);
+                Vector3 qnear = G.Nearest_Vertex(qrand);
+                qnew = NEW_CONF(qnear, qrand, step);
+                if (isTraversable(qnew)) {
+                    // add parent id + node
+                    int parent = G.Nearest_Vertex_Parent(qnew);
+                    G.addEdge(parent, qnew);
+                }
+            }
+           Vector3 nearest_to_goal = G.Nearest_Vertex(goal_pos);
+           goal_distance = (goal_pos - nearest_to_goal).magnitude;
+       } 
+
+
+
+        Debug.Log("graph size : " + G.size());
+
+        Vector3 qnear_goal = G.Nearest_Vertex(goal_pos);
+        int parent_of_goal = G.Nearest_Vertex_Parent(goal_pos);
+        G.addEdge(parent_of_goal, qnear_goal);
+
+
+        // phase 2 - reverse backtrack
+        // Plan your path here
+        my_path = G.BACKTRACK(goal_pos);
+        my_path.Add(goal_pos);
+        Debug.Log("list size : " +  my_path.Count);
+
+        List<int> parentList = G.parent;
+        List<Vector3> vectorList = G.graph;
+
+        Debug.Log("parent list  " + parentList.ToString());
+
+
+
+
+
+
+
+
+        //for (int i = 0; i < 3; i++)
+        //{
+        //    Vector3 waypoint = start_pos + new Vector3(UnityEngine.Random.Range(-50.0f, 50.0f), 0, UnityEngine.Random.Range(-30.0f, 30.0f));
+        //    my_path.Add(waypoint);
+        //}
+        //my_path.Add(goal_pos);
+
+
+
+        // Plot your path to see if it makes sense
+        Vector3 old_wp = start_pos;
+        foreach (var wp in my_path)
+        {
+            Debug.DrawLine(old_wp, wp, Color.red, 200f);
+            old_wp = wp;
+        }
+
+        
+    }
+
+    private bool isTraversable(Vector3 qnew) {
+        // transform it to the integer map
+        int i = terrain_manager.myInfo.get_i_index(qnew.x);
+        int j = terrain_manager.myInfo.get_j_index(qnew.z);
+
+        // check if traversable
+        int res = (int) terrain_manager.myInfo.traversability[i, j];
+
+        if (res == 0) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        // Execute your path here
+        // ...
+
+        // this is how you access information about the terrain
+        //int i = terrain_manager.myInfo.get_i_index(transform.position.x);
+        //int j = terrain_manager.myInfo.get_j_index(transform.position.z);
+        //float grid_center_x = terrain_manager.myInfo.get_x_pos(i);
+        //float grid_center_z = terrain_manager.myInfo.get_z_pos(j);
+
+
+        // Debug.DrawLine(transform.position, new Vector3(grid_center_x, 0f, grid_center_z), Color.white, 1f);
+        // Plot your path to see if it makes sense
+        // Vector3 old_wp = my_path[0];
+
+        float reference_time = Time.fixedDeltaTime;
+        float precX = 0.0f;
+        float precZ = 0.0f;
+
+        for (int i = 0; i< my_path.Count-2; i++) {
+            Debug.DrawLine(my_path[i], my_path[i+1], Color.white, 500f);
+
+            float dist = (my_path[i] - my_path[i+1]).magnitude;
+            // Debug.Log("dist between nodes"  +dist);
+
+
+            List<Vector3> tocheckpath = my_path;
+
+            // get to go and where I am :
+            float current_x = my_path[i].x;
+            float current_z = my_path[i].z;
+            float direction_x = my_path[i+1].x;
+            float direction_z = my_path[i+1].z;
+
+
+
+            // compute first component of acceleration:
+            float togoX_dir = direction_x - current_x - precX; // cumulative
+            //float togoX_dir = direction_x - current_x;
+            precX = togoX_dir;
+
+
+            // compute second component of acceleration:
+            float togoZ_dir = direction_z - current_z - precZ;  // cumulative
+            // float togoZ_dir = direction_z - current_z;
+            precZ = togoZ_dir;
+
+
+            // move drone to:
+            float actualtiem = Time.time;
+            float acc_magnitude = (float) Math.Sqrt(Math.Pow(togoX_dir, 2) + Math.Pow(togoZ_dir, 2));
+            float timetowork = actualtiem + (float) Math.Sqrt(2 * dist / acc_magnitude);
+
+            // repeat controls for time "TIMETOWORK" : DOES NOT WORK
+            while (Time.time < timetowork ) {
+                m_Drone.Move(togoX_dir, togoZ_dir);
+            }
+            m_Drone.Move(togoX_dir, togoZ_dir);
+
+            // Debug.Log(togoZ_dir);
+
+        }
+
+
+        //foreach (var wp in my_path) {
+
+    //}
+
+        // instrucitons-------------
+    // this is how you control the car
+    //m_Drone.Move(-0.1f,-0.1f);
+
+}
+
+
+
+// Update is called once per frame
+void Update()
+    {
+        
+    }
+}
