@@ -12,15 +12,15 @@ Authors:
 
 
 
-- Path Planner
+# (1) Path Planner
   - PD controller
   - Vehicle routing problem with DFS/BFS
-- Coordination
+# (2) Coordination
   - We use Minimum Spanning Tree (MST) to perform Vacuum Cleaner Planning
   - Minimum Set Cover to solve Indoor UGV search.
   - V-shape formation for formation sweep
   - Dijkstra algorithm for planning shooter coordination of three vehicles.
-- (4) Collision
+# (3) Collision
   - collision avoidance
   - drone soccer
 
