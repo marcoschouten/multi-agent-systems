@@ -29,6 +29,8 @@ Authors:
   - Installation: https://github.com/davechurchill/ualbertabot/wiki/Installation-Instructions https://www.youtube.com/watch?v=Bw2IDR5gt7c
 
 
+https://user-images.githubusercontent.com/42121320/195415738-38791644-a47d-42eb-b320-ce5ae0017be3.mp4
+
 
 
 
